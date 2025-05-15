@@ -125,6 +125,7 @@ async def main():
 
     im = Image.open(".scrap/常陸茉子.JPG")
     im = im.resize((WIDTH, im.height * WIDTH // im.width))
+    # rows = image_to_rows(im.convert("1"))
     rows = dither.blue_noise(image_to_rows(im.convert("L")))
     to_image(rows).show()
         # await print_rows(rows, endpoint, 32)

@@ -42,13 +42,10 @@ def floyd_steinberg(rows: Iterable[bytes]) -> Iterable[bytes]:
             error = (total - errors0[i]) // 16
             if i < WIDTH - 1:
                 errors0[i + 1] += error * 7
-            if i < WIDTH - 2:
-                errors0[i + 2] += error * 5
+                errors1[i + 1] += error
             if i > 0:
                 errors1[i - 1] += error * 3
             errors1[i] += error * 5
-            if i < WIDTH - 1:
-                errors1[i + 1] += error
         yield bytes(errors0)
         errors0 = errors1
         errors1 = [0] * WIDTH
