@@ -1,3 +1,5 @@
-# pydeli
+# deliprint
 
-用 python 代码控制得力小票打印机（DL-5801P）。
+Control A Deli Thermal Receipt Printer (DL-5801P) using python.
+
+Blue noise texture taken from [Moments in Graphics](https://momentsingraphics.de/BlueNoise.html) Blog.
