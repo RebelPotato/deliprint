@@ -4,6 +4,7 @@ from typing import List, Tuple
 from constants import *
 import functools
 
+
 def bayer8_at(i: int, j: int) -> int:
     mat = [
         [0, 32, 8, 40, 2, 34, 10, 42],
@@ -13,12 +14,13 @@ def bayer8_at(i: int, j: int) -> int:
         [3, 35, 11, 43, 1, 33, 9, 41],
         [51, 19, 59, 27, 49, 17, 57, 25],
         [15, 47, 7, 39, 13, 45, 5, 37],
-        [63, 31, 55, 23, 62, 30, 54, 22]
+        [63, 31, 55, 23, 62, 30, 54, 22],
     ]
     x = i % 8
     y = j % 8
     return mat[y][x] * 4
-    
+
+
 def bayer8(rows: Iterable[bytes]) -> Iterable[bytes]:
     """
     Apply Bayer dithering to the image rows.
@@ -28,6 +30,7 @@ def bayer8(rows: Iterable[bytes]) -> Iterable[bytes]:
         for i, byte in enumerate(row):
             dithered.append(0xFF if byte >= bayer8_at(i, j) else 0x00)
         yield bytes(dithered)
+
 
 def floyd_steinberg(rows: Iterable[bytes]) -> Iterable[bytes]:
     """
@@ -49,6 +52,7 @@ def floyd_steinberg(rows: Iterable[bytes]) -> Iterable[bytes]:
         yield bytes(errors0)
         errors0 = errors1
         errors1 = [0] * WIDTH
+
 
 def atkinson(rows: Iterable[bytes]) -> Iterable[bytes]:
     """
@@ -77,6 +81,7 @@ def atkinson(rows: Iterable[bytes]) -> Iterable[bytes]:
         errors1 = errors2
         errors2 = [0] * WIDTH
 
+
 @functools.cache
 def blue_noise_mat() -> Tuple[int, List[List[int]]]:
     im = Image.open("assets/blue_LDR_LLL1_0.png")
@@ -90,9 +95,11 @@ def blue_noise_mat() -> Tuple[int, List[List[int]]]:
         mat.append(row)
     return side, mat
 
+
 def blue_noise_at(i: int, j: int) -> int:
     side, mat = blue_noise_mat()
-    return mat[j%side][i%side]
+    return mat[j % side][i % side]
+
 
 def blue_noise(rows: Iterable[bytes]) -> Iterable[bytes]:
     """

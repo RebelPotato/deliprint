@@ -1,11 +1,13 @@
 import usb
 import contextlib
 import trio
+import itertools
 from typing import Tuple, List
 from PIL import Image
 from collections.abc import Iterable
-from constants import *
+
 import dither
+from constants import *
 
 import snoop
 
@@ -52,14 +54,7 @@ def white(width: int, height: int) -> bytes:
 
 
 def black(width: int, height: int) -> bytes:
-    return prepare_image(b"\xDD" * (width * height), width, height)
-
-
-def checkerboard(size: int, i: int, j: int) -> int:
-    x = i // size
-    y = j // (8 * size)
-    return 0xFF if x % 2 == y % 2 else 0x00
-
+    return prepare_image(b"\xdd" * (width * height), width, height)
 
 
 def image_to_rows(image: Image.Image) -> Iterable[bytes]:
@@ -69,14 +64,26 @@ def image_to_rows(image: Image.Image) -> Iterable[bytes]:
         yield bytes([image.getpixel((i, j)) for i in range(width)])
 
 
+def whiten(rows: Iterable[bytes], threshold: int, power: float) -> Iterable[bytes]:
+    """
+    Whiten the image rows based on a threshold.
+    """
+    for row in rows:
+        dithered = bytearray()
+        for byte in row:
+            whiter = min(int((byte**power) * 0xFF / (threshold**power)), 0xFF)
+            dithered.append(whiter)
+        yield bytes(dithered)
+
+
 def encode(rows: Iterable[bytes]) -> Iterable[bytes]:
     """encode <= 0x3f into 0b1, other into 0b0"""
     for row in rows:
         encoded = []
         count = 0
-        for (i, byte) in enumerate(row):
+        for i, byte in enumerate(row):
             count *= 2
-            if byte <= 0x3f:
+            if byte <= 0x3F:
                 count += 1
             if i % 8 == 7:
                 encoded.append(count)
@@ -84,7 +91,7 @@ def encode(rows: Iterable[bytes]) -> Iterable[bytes]:
         if len(row) % 8 != 0:
             encoded.append(count)
         yield bytes(encoded)
-            
+
 
 def batched(rows: Iterable[bytes], batch_size: int) -> Iterable[List[bytes]]:
     batch = []
@@ -103,6 +110,7 @@ async def print_rows(rows: Iterable[bytes], endpoint, batch_height: int):
         command = prepare_image(image, BYTE_WIDTH, len(batch))
         endpoint.write(command)
 
+
 def to_image(rows: Iterable[bytes]) -> Image.Image:
     """Convert rows of bytes back to an image."""
     data = []
@@ -116,25 +124,41 @@ def to_image(rows: Iterable[bytes]) -> Image.Image:
     return im
 
 
+def open_image_rows(path: str) -> Iterable[bytes]:
+    """Open an image file for printing and return its rows."""
+    with Image.open(path) as im:
+        if im.height < im.width:
+            im = im.rotate(90, expand=True)
+        im = im.resize((WIDTH, im.height * WIDTH // im.width))
+        return image_to_rows(im.convert("L"))
+
+
+async def print_image(rows: Iterable[bytes]):
+    with open_deli(idVendor=0x09C5, idProduct=0x0668) as endpoint:
+        endpoint.write(b"\x1b\x40")  # Initialize printer
+        endpoint.write(black(BYTE_WIDTH, 32))
+        endpoint.write(white(BYTE_WIDTH, 64))
+        await trio.sleep(0.5)
+
+        await print_rows(rows, endpoint, 32)
+
+        await trio.sleep(0.5)
+        endpoint.write(white(BYTE_WIDTH, 64))
+        endpoint.write(black(BYTE_WIDTH, 32))
+        endpoint.write(white(BYTE_WIDTH, 48))
+        endpoint.write(white(BYTE_WIDTH, 64))
+
+
 async def main():
-    # with open_deli(idVendor=0x09C5, idProduct=0x0668) as endpoint:
-    #     endpoint.write(b"\x1b\x40") # Initialize printer
-    #     endpoint.write(black(BYTE_WIDTH, 64))
-    #     endpoint.write(white(BYTE_WIDTH, 64))
-    #     await trio.sleep(0.5)
-
-    im = Image.open(".scrap/常陸茉子.JPG")
-    im = im.resize((WIDTH, im.height * WIDTH // im.width))
+    rows = itertools.chain(
+        # open_image_rows(".assets/fuchun1.jpg"),
+        # open_image_rows(".assets/fuchun2.jpg"),
+        open_image_rows(".assets/fuchun3.jpg"),
+    )
     # rows = image_to_rows(im.convert("1"))
-    rows = dither.blue_noise(image_to_rows(im.convert("L")))
+    rows = dither.blue_noise(whiten(rows, threshold=183, power=1.5))
     to_image(rows).show()
-        # await print_rows(rows, endpoint, 32)
-
-        # await trio.sleep(0.5)
-        # endpoint.write(white(BYTE_WIDTH, 64))
-        # endpoint.write(black(BYTE_WIDTH, 64))
-        # endpoint.write(white(BYTE_WIDTH, 64))
-        # endpoint.write(white(BYTE_WIDTH, 64))
+    # await print_image(rows)
 
 
 if __name__ == "__main__":
