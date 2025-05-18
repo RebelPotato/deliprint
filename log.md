@@ -18,3 +18,16 @@
 ## 20250516
 
 发现最妙参数：atkinson, threshold=199, power=1.5。
+
+## 20250517
+
+把 threshold 改成 207 也可以，字部分没那么白。
+
+```python
+rows = itertools.chain(
+    whiten(open_image_rows(".assets/fuchun0.jpg"), threshold=223, power=1.5),
+    whiten(open_image_rows(".assets/fuchun1.jpg"), threshold=207, power=1.5),
+    whiten(open_image_rows(".assets/fuchun2.jpg"), threshold=207, power=1.5),
+    whiten(open_image_rows(".assets/fuchun3.jpg"), threshold=207, power=1.5),
+)
+```

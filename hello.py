@@ -151,14 +151,15 @@ async def print_image(rows: Iterable[bytes]):
 
 async def main():
     rows = itertools.chain(
-        # open_image_rows(".assets/fuchun1.jpg"),
-        # open_image_rows(".assets/fuchun2.jpg"),
-        open_image_rows(".assets/fuchun3.jpg"),
+        whiten(open_image_rows(".assets/fuchun0.jpg"), threshold=223, power=1.5),
+        whiten(open_image_rows(".assets/fuchun1.jpg"), threshold=207, power=1.5),
+        whiten(open_image_rows(".assets/fuchun2.jpg"), threshold=207, power=1.5),
+        whiten(open_image_rows(".assets/fuchun3.jpg"), threshold=207, power=1.5),
     )
     # rows = image_to_rows(im.convert("1"))
-    rows = dither.blue_noise(whiten(rows, threshold=183, power=1.5))
-    to_image(rows).show()
-    # await print_image(rows)
+    rows = dither.atkinson(rows)
+    # to_image(rows).show()
+    await print_image(rows)
 
 
 if __name__ == "__main__":
